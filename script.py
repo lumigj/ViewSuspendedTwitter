@@ -8,8 +8,9 @@ CDX_ENDPOINT = "https://web.archive.org/cdx/search/cdx"
 params = {
     "url": "twitter.com/NekoMakiQAQ/status/*",
     "output": "json",
-    "fl": "original",
+    "fl": "timestamp,original",
     "collapse": "urlkey",
+    # "sort": "desc", // 加这个就是从最新日期开始，不加就是最老的
     "limit": "10",
 }
 
@@ -21,4 +22,4 @@ with urllib.request.urlopen(url) as resp:
 
 rows = data[1:] if data else []
 for row in rows:
-    print(row[0])
+    print([row[0], row[1]])
