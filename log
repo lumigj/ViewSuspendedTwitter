@@ -1,0 +1,28 @@
+加desc的
+C:\Users\ROG\PycharmProjects\ViewSuspendedTwitter\.venv\Scripts\python.exe C:\Users\ROG\PycharmProjects\ViewSuspendedTwitter\script.py
+['20241009081148', 'https://twitter.com/nekomakiQAQ/status/1843927329254584430', 'NekoMakiQAQ\\snapshot_20241009081148_https_twitter.com_nekomakiQAQ_status_1843927329254584430.html']
+['20241009111952', 'https://twitter.com/nekomakiQAQ/status/1843974657810248085', 'NekoMakiQAQ\\snapshot_20241009111952_https_twitter.com_nekomakiQAQ_status_1843974657810248085.html']
+['20241010055115', 'https://twitter.com/nekomakiQAQ/status/1844254346709790815', 'NekoMakiQAQ\\snapshot_20241010055115_https_twitter.com_nekomakiQAQ_status_1844254346709790815.html']
+['20241010060004', 'https://twitter.com/nekomakiQAQ/status/1844256565542650065', 'NekoMakiQAQ\\snapshot_20241010060004_https_twitter.com_nekomakiQAQ_status_1844256565542650065.html']
+['20241011141803', 'https://twitter.com/nekomakiQAQ/status/1844744273926951215', 'NekoMakiQAQ\\snapshot_20241011141803_https_twitter.com_nekomakiQAQ_status_1844744273926951215.html']
+['20241011165504', 'https://twitter.com/nekomakiQAQ/status/1844783788888396245', 'NekoMakiQAQ\\snapshot_20241011165504_https_twitter.com_nekomakiQAQ_status_1844783788888396245.html']
+['20241011172037', 'https://twitter.com/nekomakiQAQ/status/1844790221465894972', 'NekoMakiQAQ\\snapshot_20241011172037_https_twitter.com_nekomakiQAQ_status_1844790221465894972.html']
+['20241012014734', 'https://twitter.com/nekomakiQAQ/status/1844917797723464103', 'NekoMakiQAQ\\snapshot_20241012014734_https_twitter.com_nekomakiQAQ_status_1844917797723464103.html']
+['20241012141309', 'https://twitter.com/nekomakiQAQ/status/1845105427668955259', 'NekoMakiQAQ\\snapshot_20241012141309_https_twitter.com_nekomakiQAQ_status_1845105427668955259.html']
+['20241013060444', 'https://twitter.com/nekomakiQAQ/status/1845344903829897499', 'NekoMakiQAQ\\snapshot_20241013060444_https_twitter.com_nekomakiQAQ_status_1845344903829897499.html']
+
+Process finished with exit code 0
+不加的
+C:\Users\ROG\PycharmProjects\ViewSuspendedTwitter\.venv\Scripts\python.exe C:\Users\ROG\PycharmProjects\ViewSuspendedTwitter\script.py
+['20241009081148', 'https://twitter.com/nekomakiQAQ/status/1843927329254584430', 'NekoMakiQAQ\\snapshot_20241009081148_https_twitter.com_nekomakiQAQ_status_1843927329254584430.html']
+['20241009111952', 'https://twitter.com/nekomakiQAQ/status/1843974657810248085', 'NekoMakiQAQ\\snapshot_20241009111952_https_twitter.com_nekomakiQAQ_status_1843974657810248085.html']
+['20241010055115', 'https://twitter.com/nekomakiQAQ/status/1844254346709790815', 'NekoMakiQAQ\\snapshot_20241010055115_https_twitter.com_nekomakiQAQ_status_1844254346709790815.html']
+['20241010060004', 'https://twitter.com/nekomakiQAQ/status/1844256565542650065', 'NekoMakiQAQ\\snapshot_20241010060004_https_twitter.com_nekomakiQAQ_status_1844256565542650065.html']
+['20241011141803', 'https://twitter.com/nekomakiQAQ/status/1844744273926951215', 'NekoMakiQAQ\\snapshot_20241011141803_https_twitter.com_nekomakiQAQ_status_1844744273926951215.html']
+['20241011165504', 'https://twitter.com/nekomakiQAQ/status/1844783788888396245', 'NekoMakiQAQ\\snapshot_20241011165504_https_twitter.com_nekomakiQAQ_status_1844783788888396245.html']
+['20241011172037', 'https://twitter.com/nekomakiQAQ/status/1844790221465894972', 'NekoMakiQAQ\\snapshot_20241011172037_https_twitter.com_nekomakiQAQ_status_1844790221465894972.html']
+['20241012014734', 'https://twitter.com/nekomakiQAQ/status/1844917797723464103', 'NekoMakiQAQ\\snapshot_20241012014734_https_twitter.com_nekomakiQAQ_status_1844917797723464103.html']
+['20241012141309', 'https://twitter.com/nekomakiQAQ/status/1845105427668955259', 'NekoMakiQAQ\\snapshot_20241012141309_https_twitter.com_nekomakiQAQ_status_1845105427668955259.html']
+['20241013060444', 'https://twitter.com/nekomakiQAQ/status/1845344903829897499', 'NekoMakiQAQ\\snapshot_20241013060444_https_twitter.com_nekomakiQAQ_status_1845344903829897499.html']
+
+Process finished with exit code 0
