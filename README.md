@@ -1,5 +1,7 @@
 # ViewSuspendedTwitter
 
+![Sample](sample/Screenshot%202026-02-08%20202953.png)
+
 - [English](#english)
 - [中文](#中文)
 
