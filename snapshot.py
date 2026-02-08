@@ -6,21 +6,21 @@ import urllib.request
 USER_AGENT = "ViewSuspendedTwitter/1.0 (+https://web.archive.org/)"
 
 
-def _open_url(url: str) -> str:
+def _open_url(url: str, timeout_seconds: int | None = None) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(request) as resp:
+    with urllib.request.urlopen(request, timeout=timeout_seconds) as resp:
         return resp.read().decode("utf-8", errors="replace")
 
 
-def fetch_snapshot_content(timestamp: str, original_url: str) -> str:
+def fetch_snapshot_content(timestamp: str, original_url: str, timeout_seconds: int | None = None) -> str:
     archive_url = f"https://web.archive.org/web/{timestamp}/{original_url}"
-    return _open_url(archive_url)
+    return _open_url(archive_url, timeout_seconds)
 
 # 抓取iframe里的
 
-def fetch_snapshot_content_iframe(timestamp: str, original_url: str) -> str:
+def fetch_snapshot_content_iframe(timestamp: str, original_url: str, timeout_seconds: int | None = None) -> str:
     archive_url = f"https://web.archive.org/web/{timestamp}if_/{original_url}"
-    return _open_url(archive_url)
+    return _open_url(archive_url, timeout_seconds)
 
 
 #留下iframe html里面真正有用的信息

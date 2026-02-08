@@ -1,4 +1,3 @@
-import concurrent.futures
 import os
 import re
 import sqlite3
@@ -39,12 +38,6 @@ def mark_row(db_path: str, timestamp: str, original: str, status: int, error: st
         conn.commit()
     print(f"== Marked row: {timestamp} {original} status={status}")
 
-def fetch_iframe_with_timeout(timestamp: str, original: str, timeout_seconds: int = 10) -> str:
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(fetch_snapshot_content_iframe, timestamp, original)
-        return future.result(timeout=timeout_seconds)
-
-
 def save_snapshots(rows: list[tuple[str, str]], username: str, db_path: str) -> None:
     total = len(rows)
     print(f"Total pending rows: {total}")
@@ -53,7 +46,7 @@ def save_snapshots(rows: list[tuple[str, str]], username: str, db_path: str) -> 
         output_dir = f"output/{username}"
         os.makedirs(output_dir, exist_ok=True)
         try:
-            iframe_html = fetch_iframe_with_timeout(timestamp, original, timeout_seconds=10)
+            iframe_html = fetch_snapshot_content_iframe(timestamp, original, timeout_seconds=10)
             print("== Fetched snapshot, building HTML...")
             simplified_html = build_simplified_tweet_html(iframe_html)
             safe_original = sanitize_filename(original)
