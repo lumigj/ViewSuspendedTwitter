@@ -1,10 +1,12 @@
 import json
 import os
 import sqlite3
+import time
 import urllib.parse
 import urllib.request
 
 CDX_ENDPOINT = "https://web.archive.org/cdx/search/cdx"
+USER_AGENT = "ViewSuspendedTwitter/1.0 (+https://web.archive.org/)"
 
 
 def build_params(username: str) -> dict[str, str]:
@@ -18,12 +20,23 @@ def build_params(username: str) -> dict[str, str]:
     }
 
 
-def fetch_cdx_rows(username: str) -> list[list[str]]:
+def fetch_cdx_rows(username: str, *, retries: int = 4, timeout_seconds: int = 15) -> list[list[str]]:
     query = urllib.parse.urlencode(build_params(username))
     url = f"{CDX_ENDPOINT}?{query}"
-    with urllib.request.urlopen(url) as resp:
-        data = json.loads(resp.read().decode("utf-8", errors="replace"))
-    return data[1:] if data else []
+    last_exc: Exception | None = None
+
+    for attempt in range(retries):
+        try:
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(request, timeout=timeout_seconds) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            return data[1:] if data else []
+        except Exception as exc:
+            last_exc = exc
+            # Exponential backoff: 1s, 2s, 4s, 8s...
+            time.sleep(2**attempt)
+
+    raise last_exc if last_exc else RuntimeError("Failed to fetch CDX rows")
 
 
 def write_cdx_rows(username: str, rows: list[list[str]]) -> str:
@@ -60,3 +73,4 @@ if __name__ == "__main__":
     username = "susiethegamer"
     output = write_cdx_rows(username, fetch_cdx_rows(username))
     print(output)
+
