@@ -168,11 +168,88 @@ def build_simplified_tweet_html(iframe_html: str) -> str:
 </html>
 """
 
+def extract_iframe_data(iframe_html: str) -> str:
+    match = re.search(r"<pre>(.*?)</pre>", iframe_html, re.DOTALL)
+    if not match:
+        return iframe_html
+
+    try:
+        raw_json = html_module.unescape(match.group(1).strip())
+        payload = json.loads(raw_json)
+    except json.JSONDecodeError:
+        return iframe_html
+
+    data = payload.get("data", {})
+    includes = payload.get("includes", {})
+    users = includes.get("users", [])
+    author_id = data.get("author_id")
+    author = next((u for u in users if u.get("id") == author_id), {})
+
+    name = html_module.escape(author.get("name", ""))
+    username = html_module.escape(author.get("username", ""))
+    bio = html_module.escape(author.get("description", ""))
+    profile_image_url = html_module.escape(author.get("profile_image_url", ""))
+    author_created_at = html_module.escape(author.get("created_at", ""))
+    author_metrics = author.get("public_metrics", {}) or {}
+    author_followers = author_metrics.get("followers_count", "")
+    author_following = author_metrics.get("following_count", "")
+    author_tweets = author_metrics.get("tweet_count", "")
+    author_likes = author_metrics.get("like_count", "")
+    author_listed = author_metrics.get("listed_count", "")
+    author_media = author_metrics.get("media_count", "")
+
+    text = html_module.escape(data.get("text", ""))
+    created_at = html_module.escape(data.get("created_at", ""))
+    conversation_id = html_module.escape(data.get("conversation_id", ""))
+    referenced_tweets = data.get("referenced_tweets", []) or []
+    referenced_summary = ", ".join(
+        f"{t.get('type', '')}:{t.get('id', '')}" for t in referenced_tweets
+    )
+    referenced_summary = html_module.escape(referenced_summary)
+
+    tweet_metrics = data.get("public_metrics", {}) or {}
+    reply_count = tweet_metrics.get("reply_count", "")
+    retweet_count = tweet_metrics.get("retweet_count", "")
+    like_count = tweet_metrics.get("like_count", "")
+    quote_count = tweet_metrics.get("quote_count", "")
+    bookmark_count = tweet_metrics.get("bookmark_count", "")
+    impression_count = tweet_metrics.get("impression_count", "")
+
+    mentions = data.get("entities", {}).get("mentions", []) or []
+    mention_list = ", ".join(f"@{m.get('username', '')}" for m in mentions)
+    mention_list = html_module.escape(mention_list)
+
+    return {
+        "name": name,
+        "username": username,
+        "bio": bio,
+        "profile_image_url": profile_image_url,
+        "author_created_at": author_created_at,
+        "author_followers": author_followers,
+        "author_following": author_following,
+        "author_tweets": author_tweets,
+        "author_likes": author_likes,
+        "author_listed": author_listed,
+        "author_media": author_media,
+        
+        "text": text,
+        "created_at": created_at,
+        "conversation_id": conversation_id,
+
+        "reply_count": reply_count,
+        "retweet_count": retweet_count,
+        "like_count": like_count,
+        "quote_count": quote_count,
+        "bookmark_count": bookmark_count,
+        "impression_count": impression_count,
+        }
+
 
 __all__ = [
     "fetch_snapshot_content",
     "fetch_snapshot_content_iframe",
     "build_simplified_tweet_html",
+    "extract_iframe_data",
 ]
 
 
