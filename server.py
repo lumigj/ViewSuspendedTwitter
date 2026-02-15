@@ -1,13 +1,13 @@
-from typing import Annotated
 from contextlib import asynccontextmanager
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse, FileResponse
+import threading
+import time
+import psycopg
+from psycopg.types.json import Json
 
-from fastapi import FastAPI, status, Query
-from fastapi.responses import JSONResponse
 import script
 import snapshot
-import threading
-
-import psycopg
 import config
 
 global conn
@@ -38,7 +38,7 @@ def fetch_tweet_contents_worker(username: str, task: FetchTask):
         cur.execute(
             """
             SELECT timestamp, original FROM snapshots
-            WHERE username = %s AND status = 0
+            WHERE username = %s AND status IN (0, 2)
             """,
             (username,))
         rows = cur.fetchall()
@@ -62,13 +62,12 @@ def fetch_tweet_contents_worker(username: str, task: FetchTask):
                     (timestamp, original)
                 )
 
-                # TODO: 将剩余的元数据添加到meta字段中
                 cur.execute(
                     """
-                    INSERT INTO data (username, timestamp, original, author_name, text)
-                    VALUES (%s, %s, %s, %s, %s)
+                    INSERT INTO data (username, timestamp, original, author_name, text, meta)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                    (username, timestamp, original, data["name"], data["text"])
+                    (username, timestamp, original, data["name"], data["text"], Json(data))
                 )
             except Exception as exc:
                 cur.execute(
@@ -80,8 +79,24 @@ def fetch_tweet_contents_worker(username: str, task: FetchTask):
                     (str(exc), timestamp, original)
                 )
             task.current += 1
+            time.sleep(10) # 等待十秒后处理下一行
+        idx = 0
+        for t in running_tasks:
+            if t.username ==username:
+                break
+            idx += 1
+        del running_tasks[idx]
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    docs_url=None,
+    redoc_url=None,
+)
+
+# app.mount("/", StaticFiles(directory="static"), name="static")
+@app.get("/")
+def index():
+    return FileResponse("static/index.html")
 
 @app.get("/GetTweets/{username}")
 def get_tweets(username: str, timestamp: str | None = None):
@@ -90,7 +105,7 @@ def get_tweets(username: str, timestamp: str | None = None):
     with conn.cursor() as cur:
         cur.execute(
             """
-            SELECT text, author_name FROM data
+            SELECT text, author_name, timestamp, meta FROM data
             WHERE username = %s AND timestamp < %s
             ORDER BY timestamp
             DESC
@@ -103,11 +118,11 @@ def get_tweets(username: str, timestamp: str | None = None):
         
         for row in rows:
             data.append(dict(zip(
-                ["text", "author_name"],
+                ["text", "author_name", "timestamp", "meta"],
                 row
             )))
 
-        return {"status": "success", "data": data}
+        return {"status": "success", "data": data, "is_end": True if len(rows) == 0 else False}
 
 @app.get("/GetAllTasks")
 def get_all_tasks():
@@ -128,7 +143,7 @@ def get_fetch_task_progress(username: str):
     else:
         return {"status": "running", "current": task.current, "total": task.total}
 
-@app.post("/Admin/FetchTweetsIndex/{username}")
+@app.post("/" + config.PAGE_SECRET + "/Admin/FetchTweetsIndex/{username}")
 def fetch_tweets_index(username: str):
     # return JSONResponse(status_code=status.HTTP_202_ACCEPTED, content={})
     rows = []
@@ -152,7 +167,7 @@ def fetch_tweets_index(username: str):
             )
         return {"status": "success"}
 
-@app.post("/Admin/FetchTweetContents/{username}")
+@app.post("/" + config.PAGE_SECRET + "/Admin/FetchTweetContents/{username}")
 def fetch_tweet_contents(username: str):
     running = False
     for t in running_tasks:

@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ViewSuspendedTwitter Online</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Helvetica, Arial, sans-serif;
+            background: #f7f7f7;
+        }
+
+        .search-box {
+            margin: 0 auto;
+            max-width: fit-content;
+        }
+
+        .tweet {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            border-radius: 12px;
+            padding: 16px 20px;
+
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+
+        .author {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .username {
+            color: #657786;
+            margin-bottom: 8px;
+        }
+        .bio {
+            color: #374151;
+            margin-bottom: 12px;
+        }
+        .author-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+        .content {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .metrics {
+            margin-top: 12px;
+            color: #4b5563;
+            font-size: 0.9rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .date {
+            margin-top: 12px;
+            color: #657786;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="tweet">
+            <div class="content">
+                <a href="https://blog.yulingko.moe/view_suspended_twitter_online/">条件反射 on 云焰（与岭的blog）中对于信息的收集汇总</a>，里面枚举了可查询的用户名<br>
+                <a href="https://git.gay/xioi/ViewSuspendedTwitterOnline">此项目的开源仓库</a>
+            </div>
+        </div>
+        <div class="search-box">
+            输入查询的用户名：
+            <input v-model="username" />
+            <button @click="startLoad">加载</button>
+        </div>
+        <div v-if="selected">
+            <article v-for="tweet in tweets" class="tweet">
+                <!-- <pre>- {{ tweet.timestamp }}</pre> -->
+                <div class="author">{{ tweet.author_name }}</div>
+                <div class="content">{{ tweet.text }}</div>
+                <div class="date">Created at: {{ tweet.meta.created_at }}</div>
+                <div class="date">Conversation: {{ tweet.meta.conversation_id }}</div>
+                <div class="date">Referenced tweets: {{ tweet.meta.referenced_summary }}</div>
+                <div class="date">Mentions: {{ tweet.meta.mention_list }}</div>
+            </article>
+
+            <div v-if="loading" class="search-box">
+                正在加载中……
+            </div>
+            <div v-else class="search-box">
+                <button @click="loadMore" v-if="!isEnd">加载更多</button>
+                <span v-else>已经到底了</span>
+            </div>
+            
+        </div>
+    </div>
+
+    <script type="module">
+        import { createApp, ref } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+        const endpoint = "https://viewtwitter.yulingko.moe" // 修改此处来更改服务器
+
+        createApp({
+            setup() {
+                
+                return {
+                    currentTimestamp: ref("99999999999999"),
+                    username: ref("Yanluo1019"),
+                    loadingUsername: ref(""),
+                    isEnd: ref(false),
+                    tweets: ref([]),
+                    selected: ref(false),
+                    loading: ref(false),
+                }
+            },
+            methods: {
+                loadMore() {
+                    this.loading = true
+
+                    fetch(`${endpoint}/GetTweets/${this.username}?timestamp=${this.currentTimestamp}`)
+                        .then((resp) => resp.json())
+                        .then((data) => {
+                            // console.log(data.data)
+                            let datas = data.data
+                            this.tweets.push(...datas)
+
+                            if(data.is_end) {
+                                this.isEnd = true
+                            }
+                            this.loading = false
+
+                            if(datas.length != 0) {
+                                this.currentTimestamp = datas[datas.length - 1].timestamp
+                            }
+                        })
+                },
+                startLoad() {
+                    this.tweets = []
+                    this.isEnd = false
+                    this.currentTimestamp = ref("99999999999999")
+                    this.loadingUsername = this.username
+                    this.selected = true
+
+                    this.loadMore()
+                }
+            }
+        }).mount('#app')
+</script>
+</body>
+</html>
