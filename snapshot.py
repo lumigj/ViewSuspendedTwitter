@@ -2,12 +2,19 @@ import html as html_module
 import json
 import re
 from threading import Lock
+from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
 USER_AGENT = "ViewSuspendedTwitter/1.0 (+https://web.archive.org/)"
 _HTTP_CLIENT: httpx.Client | None = None
 _HTTP_CLIENT_LOCK = Lock()
+_IFRAME_SUFFIXES = ("id_", "if_", "im_")
+_WAYBACK_WRAPPED_URL_RE = re.compile(
+    r"^https?://web\.archive\.org/web/\d{14}[a-z_]*?/(https?://.+)$",
+    re.IGNORECASE,
+)
 
 
 def _get_http_client() -> httpx.Client:
@@ -24,9 +31,12 @@ def _get_http_client() -> httpx.Client:
 
 
 def _open_url(url: str, timeout_seconds: int | None = None) -> str:
-    response = _get_http_client().get(url, timeout=timeout_seconds)
-    response.raise_for_status()
-    return response.content.decode("utf-8", errors="replace")
+    chunks = bytearray()
+    with _get_http_client().stream("GET", url, timeout=timeout_seconds) as response:
+        response.raise_for_status()
+        for chunk in response.iter_bytes(chunk_size=8192):
+            chunks.extend(chunk)
+    return bytes(chunks).decode("utf-8", errors="replace")
 
 
 def fetch_snapshot_content(timestamp: str, original_url: str, timeout_seconds: int | None = None) -> str:
@@ -35,21 +45,101 @@ def fetch_snapshot_content(timestamp: str, original_url: str, timeout_seconds: i
 
 # 抓取iframe里的
 
+
+def _normalize_x_url(url: str) -> str:
+    parts = urlsplit(url)
+    hostname = (parts.hostname or "").lower()
+    if hostname in {"twitter.com", "www.twitter.com", "mobile.twitter.com"}:
+        netloc = "x.com"
+        if parts.port:
+            netloc = f"{netloc}:{parts.port}"
+        return urlunsplit((parts.scheme or "https", netloc, parts.path, parts.query, parts.fragment))
+    return url
+
+
+def _unwrap_wayback_url(value: str) -> str:
+    unwrapped = value
+    while True:
+        match = _WAYBACK_WRAPPED_URL_RE.match(unwrapped)
+        if not match:
+            return unwrapped
+        next_value = match.group(1)
+        if next_value == unwrapped:
+            return unwrapped
+        unwrapped = next_value
+
+
+def _normalize_payload_urls(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _normalize_payload_urls(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_normalize_payload_urls(v) for v in value]
+    if isinstance(value, str):
+        return _unwrap_wayback_url(value)
+    return value
+
+
+def _extract_payload(iframe_html: str) -> dict | None:
+    raw = iframe_html.strip()
+    if not raw:
+        return None
+
+    if raw.startswith("{") or raw.startswith("["):
+        try:
+            payload = json.loads(raw)
+            if isinstance(payload, dict):
+                normalized = _normalize_payload_urls(payload)
+                return normalized if isinstance(normalized, dict) else None
+        except json.JSONDecodeError:
+            pass
+
+    match = re.search(r"<pre>(.*?)</pre>", iframe_html, re.DOTALL)
+    if not match:
+        return None
+
+    try:
+        unescaped = html_module.unescape(match.group(1).strip())
+        payload = json.loads(unescaped)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    normalized = _normalize_payload_urls(payload)
+    return normalized if isinstance(normalized, dict) else None
+
 def fetch_snapshot_content_iframe(timestamp: str, original_url: str, timeout_seconds: int | None = None) -> str:
-    archive_url = f"https://web.archive.org/web/{timestamp}if_/{original_url}"
-    return _open_url(archive_url, timeout_seconds)
+    normalized = _normalize_x_url(original_url)
+    base_urls = [normalized]
+    if normalized != original_url:
+        base_urls.append(original_url)
+
+    attempt_errors: list[str] = []
+    for base_url in base_urls:
+        for suffix in _IFRAME_SUFFIXES:
+            archive_url = f"https://web.archive.org/web/{timestamp}{suffix}/{base_url}"
+            try:
+                body = _open_url(archive_url, timeout_seconds)
+            except Exception as exc:
+                attempt_errors.append(f"{archive_url} -> {type(exc).__name__}: {exc}")
+                continue
+
+            if not body.strip():
+                attempt_errors.append(f"{archive_url} -> empty body")
+                continue
+
+            if _extract_payload(body) is None:
+                attempt_errors.append(f"{archive_url} -> unparsable body")
+                continue
+
+            return body
+
+    raise ValueError("Wayback variants failed: " + "; ".join(attempt_errors))
 
 
 #留下iframe html里面真正有用的信息
 def build_simplified_tweet_html(iframe_html: str) -> str:
-    match = re.search(r"<pre>(.*?)</pre>", iframe_html, re.DOTALL)
-    if not match:
-        return iframe_html
-
-    try:
-        raw_json = html_module.unescape(match.group(1).strip())
-        payload = json.loads(raw_json)
-    except json.JSONDecodeError:
+    payload = _extract_payload(iframe_html)
+    if payload is None:
         return iframe_html
 
     data = payload.get("data", {})
@@ -186,14 +276,8 @@ def build_simplified_tweet_html(iframe_html: str) -> str:
 """
 
 def extract_iframe_data(iframe_html: str) -> str:
-    match = re.search(r"<pre>(.*?)</pre>", iframe_html, re.DOTALL)
-    if not match:
-        return iframe_html
-
-    try:
-        raw_json = html_module.unescape(match.group(1).strip())
-        payload = json.loads(raw_json)
-    except json.JSONDecodeError:
+    payload = _extract_payload(iframe_html)
+    if payload is None:
         return iframe_html
 
     data = payload.get("data", {})
@@ -272,7 +356,7 @@ __all__ = [
 
 #一个snapshot的例子
 if __name__ == "__main__":
-    example_timestamp = "20251012170444"
-    example_url = "https://x.com/NekoMakiQAQ/status/1977420179576700944"
+    example_timestamp = "20251109193220"
+    example_url = "https://twitter.com/LumiCatRoll/status/1987604187073671547"
     iframe_html = fetch_snapshot_content_iframe(example_timestamp, example_url)
     print(build_simplified_tweet_html(iframe_html))
