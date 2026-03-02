@@ -18,18 +18,18 @@ def build_params(username: str) -> dict[str, str]:
     }
 
 
-def fetch_cdx_rows(username: str) -> list[list[str]]:
-    query = urllib.parse.urlencode(build_params(username))
+def fetch_cdx_rows(in_username: str) -> list[list[str]]:
+    query = urllib.parse.urlencode(build_params(in_username))
     url = f"{CDX_ENDPOINT}?{query}"
     with urllib.request.urlopen(url) as resp:
         data = json.loads(resp.read().decode("utf-8", errors="replace"))
     return data[1:] if data else []
 
 
-def write_cdx_rows(username: str, rows: list[list[str]]) -> str:
+def write_cdx_rows(in_username: str, rows: list[list[str]]) -> str:
     output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, f"{username}.db")
+    output_path = os.path.join(output_dir, f"{in_username}.db")
     with sqlite3.connect(output_path) as conn:
         conn.execute(
             """

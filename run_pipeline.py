@@ -1,7 +1,7 @@
 import os
 import re
-import socket
 import sqlite3
+import time
 
 from script import fetch_cdx_rows, write_cdx_rows
 from snapshot import build_simplified_tweet_html, fetch_snapshot_content_iframe
@@ -17,7 +17,7 @@ def load_pending_rows(db_path: str) -> list[tuple[str, str]]:
             """
             SELECT timestamp, original
             FROM snapshots
-            WHERE status IN (0)
+            WHERE status IN (0, 2)
             ORDER BY timestamp DESC
             """
         ).fetchall()
@@ -61,10 +61,11 @@ def save_snapshots(rows: list[tuple[str, str]], username: str, db_path: str) -> 
         except Exception as exc:
             mark_row(db_path, timestamp, original, 2, str(exc))
             print([timestamp, original, str(exc)])
+        time.sleep(1.5)  # 不然一直跳
 
 
 def main() -> None:
-    username = "susiethegamer"
+    username = "lumicatroll"
     db_path = os.path.join("output", f"{username}.db")
     if not os.path.exists(db_path):
         db_path = write_cdx_rows(username, fetch_cdx_rows(username))
